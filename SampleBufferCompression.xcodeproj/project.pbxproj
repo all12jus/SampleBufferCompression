@@ -11,6 +11,7 @@
 		D0753D532BB5A17400D8BB29 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0753D522BB5A17400D8BB29 /* ContentView.swift */; };
 		D0753D552BB5A17600D8BB29 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0753D542BB5A17600D8BB29 /* Assets.xcassets */; };
 		D0753D582BB5A17600D8BB29 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0753D572BB5A17600D8BB29 /* Preview Assets.xcassets */; };
+		D0753D602BB5A1DF00D8BB29 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0753D5F2BB5A1DF00D8BB29 /* Library.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +21,7 @@
 		D0753D542BB5A17600D8BB29 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D0753D572BB5A17600D8BB29 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		D0753D592BB5A17600D8BB29 /* SampleBufferCompression.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SampleBufferCompression.entitlements; sourceTree = "<group>"; };
+		D0753D5F2BB5A1DF00D8BB29 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +54,7 @@
 		D0753D4F2BB5A17400D8BB29 /* SampleBufferCompression */ = {
 			isa = PBXGroup;
 			children = (
+				D0753D5F2BB5A1DF00D8BB29 /* Library.swift */,
 				D0753D502BB5A17400D8BB29 /* SampleBufferCompressionApp.swift */,
 				D0753D522BB5A17400D8BB29 /* ContentView.swift */,
 				D0753D542BB5A17600D8BB29 /* Assets.xcassets */,
@@ -141,6 +144,7 @@
 			files = (
 				D0753D532BB5A17400D8BB29 /* ContentView.swift in Sources */,
 				D0753D512BB5A17400D8BB29 /* SampleBufferCompressionApp.swift in Sources */,
+				D0753D602BB5A1DF00D8BB29 /* Library.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -280,6 +284,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "For mic";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -307,6 +312,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "For mic";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

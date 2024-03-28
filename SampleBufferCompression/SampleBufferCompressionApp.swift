@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct SampleBufferCompressionApp: App {
+    var audioTester: AudioTest = AudioTest()
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    audioTester.startTest()
+                }
         }
     }
 }

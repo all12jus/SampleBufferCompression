@@ -34,6 +34,20 @@ class AudioTest {
     
 }
 
+let COMPRESSED_AUDIO_SETTINGS: [String : Any] = [
+    AVFormatIDKey: kAudioFormatMPEG4AAC,
+    AVSampleRateKey: 44100,
+    AVNumberOfChannelsKey: 2,
+    AVEncoderBitRateKey: 128000
+]
+
+let PLAYBACK_AUDIO_SETTINGS: [String : Any] = [
+    AVFormatIDKey: kAudioFormatLinearPCM,
+    AVSampleRateKey: 44100,
+    AVNumberOfChannelsKey: 2,
+    AVEncoderBitRateKey: 128000
+]
+
 class OutputEngine {
     let audioEngine: AVAudioEngine
     let audioPlayerNode: AVAudioPlayerNode
@@ -51,25 +65,31 @@ class OutputEngine {
         self.audioEngine.attach(self.audioPlayerNode)
         self.audioEngine.attach(self.mixerNode)
         
+        let outputFormat = audioEngine.mainMixerNode.inputFormat(forBus:0)
         
-        audioEngine.connect(audioPlayerNode, to: mixerNode, format: audioEngine.mainMixerNode.outputFormat(forBus:0))
+        audioEngine.connect(audioPlayerNode, to: mixerNode, format: outputFormat)
         
-        audioEngine.connect(mixerNode, to: audioEngine.mainMixerNode, format: audioEngine.mainMixerNode.outputFormat(forBus:0))
+        audioEngine.connect(mixerNode, to: audioEngine.mainMixerNode, format: outputFormat)
         
         //        uncompressedFormat = audioEngine.mainMixerNode.outputFormat(forBus: 0)
         
-        var inputFormatDescription = AudioStreamBasicDescription()
-        inputFormatDescription.mSampleRate = 44100.0 // Sample rate of the original audio
-        inputFormatDescription.mChannelsPerFrame = 1 // Number of channels
-        //        inputFormatDescription.mFormatID = kAudioFormatMPEG4AAC // FLAC format
-        inputFormatDescription.mFormatID = kAudioFormatFLAC // FLAC format
-        inputFormatDescription.mFramesPerPacket = 1152 // Frames per packet
-        inputFormatDescription.mBitsPerChannel = 24 // Bit depth
-        inputFormatDescription.mBytesPerPacket = 8 // Calculated based on other parameters
-        compressedFormat = AVAudioFormat(streamDescription: &inputFormatDescription)!
+        compressedFormat = AVAudioFormat(settings:COMPRESSED_AUDIO_SETTINGS)
         
-        let format = self.audioEngine.mainMixerNode.inputFormat(forBus: 0)
-        self.converter = AVAudioConverter(from: compressedFormat, to: format)
+//        compressedFormat = format1
+
+        
+//        var inputFormatDescription = AudioStreamBasicDescription()
+//        inputFormatDescription.mSampleRate = 44100.0 // Sample rate of the original audio
+//        inputFormatDescription.mChannelsPerFrame = 1 // Number of channels
+//        //        inputFormatDescription.mFormatID = kAudioFormatMPEG4AAC // FLAC format
+//        inputFormatDescription.mFormatID = kAudioFormatFLAC // FLAC format
+//        inputFormatDescription.mFramesPerPacket = 1152 // Frames per packet
+//        inputFormatDescription.mBitsPerChannel = 24 // Bit depth
+//        inputFormatDescription.mBytesPerPacket = 8 // Calculated based on other parameters
+//        compressedFormat = AVAudioFormat(streamDescription: &inputFormatDescription)!
+        
+//        let format = self.audioEngine.mainMixerNode.inputFormat(forBus: 0)
+        self.converter = AVAudioConverter(from: compressedFormat, to: outputFormat)
         self.converter.reset()
         
         
@@ -116,27 +136,71 @@ class OutputEngine {
             print(uncompressedBuffer.frameCapacity)
             // Input block is called when the converter needs input
             uncompressedBuffer.frameLength = uncompressedBuffer.frameCapacity
-            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
-                //                return nil
-                
-                print("in \(inNumPackets) \(outStatus.pointee.rawValue)")
-                //                outStatus.pointee = .haveData
-                outStatus.pointee = .haveData
-                print("called input block")
-                
-                print(compressedBufferLocal)
-                return compressedBufferLocal // Provide the compressed buffer
-            }
-            
+//            let inputBlock_: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
+//                //                return nil
+//                
+//                print("in \(inNumPackets) \(outStatus.pointee.rawValue)")
+//                //                outStatus.pointee = .haveData
+//                outStatus.pointee = .haveData
+//                print("called input block")
+//                
+//                print(compressedBufferLocal)
+//                return compressedBufferLocal // Provide the compressed buffer
+//            }
+//            
             // Decompression loop
             var outError: NSError? = nil
             
             
             let format = self.mixerNode.inputFormat(forBus: 0)
             self.converter = AVAudioConverter(from: compressedFormat, to: format)
-            let conversionResult = converter.convert(to: uncompressedBuffer, error: &outError, withInputFrom: inputBlock)
+            
+            
+            
+            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
+                // Assuming sourceBuffer is your populated AVAudioCompressedBuffer
+                if (uncompressedBuffer.frameLength != 0){
+                    outStatus.pointee = .haveData
+                    print("164: \(compressedBufferLocal.byteLength)")
+                    return compressedBufferLocal
+                } else {
+                    outStatus.pointee = .noDataNow
+                    return nil
+                }
+            }
+
+            var error: NSError?
+            let conversionResult = converter.convert(to: uncompressedBuffer, error: &error) { inNumPackets, outStatus in
+                return inputBlock(inNumPackets, outStatus)
+            }
+            
+            
+            
+//            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
+//                // Assuming sourceBuffer is your populated AVAudioCompressedBuffer
+//                if !sourceBufferIsEmpty {
+//                    outStatus.pointee = .haveData
+//                    return sourceBuffer
+//                } else {
+//                    outStatus.pointee = .noDataNow
+//                    return nil
+//                }
+//            }
+//            
+//            var error: NSError?
+//            let result = converter.convert(to: destinationBuffer, error: &error) { inNumPackets, outStatus in
+//                return inputBlock(inNumPackets, outStatus)
+//            }
+//            
+            
+            
+            
+            
+            
+//            let conversionResult = converter.convert(to: uncompressedBuffer, error: &outError, withInputFrom: inputBlock)
             print(conversionResult)
             print(conversionResult.rawValue)
+            print("error: \(outError)")
             
             if conversionResult == .endOfStream {
                 print("Conversion Result = endOfStream")
@@ -218,6 +282,7 @@ class CaptureEngine {
         // trying 4 seems to work. pcmFormatFloat32
         print("Encoding with \(inputFormat.channelCount) channels, sampleRate: \(inputFormat.sampleRate).")
         let mixerFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: inputFormat.sampleRate, channels: inputFormat.channelCount, interleaved: false) // TODO: was one channels would this be 2 channels.
+//        let mixerFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: inputFormat.sampleRate, channels: inputFormat.channelCount, interleaved: false) // TODO: was one channels would this be 2 channels.
 #elseif os(iOS)
         let mixerFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: inputFormat.sampleRate, channels: 1, interleaved: false)
         // this seems to have to be channel count of 2, one actually makes it mono and play in both ears.
@@ -238,19 +303,30 @@ class CaptureEngine {
         let tapNode: AVAudioNode = mixerNode
         //
         let format = tapNode.outputFormat(forBus: 0)
+        
         var outDesc = AudioStreamBasicDescription()
         outDesc.mSampleRate = format.sampleRate
-        outDesc.mChannelsPerFrame = 1
-        outDesc.mFormatID = kAudioFormatFLAC
+        outDesc.mChannelsPerFrame = format.channelCount
+        outDesc.mFormatID = kAudioFormatMPEG4AAC
+        outDesc.mFramesPerPacket = 1024 // AAC typically uses 1024 frames per packet
+        // Other settings may need to be adjusted for AAC encoding
+
         
-        let framesPerPacket: UInt32 = 1152
-        outDesc.mFramesPerPacket = framesPerPacket
-        outDesc.mBitsPerChannel = 8
-        outDesc.mBytesPerPacket = 0
+//        var outDesc = AudioStreamBasicDescription()
+//        outDesc.mSampleRate = format.sampleRate
+//        outDesc.mChannelsPerFrame = 1
+//        outDesc.mFormatID = kAudioFormatFLAC
+        
+//        let framesPerPacket: UInt32 = 1152
+//        outDesc.mFramesPerPacket = framesPerPacket
+//        outDesc.mBitsPerChannel = 8
+//        outDesc.mBytesPerPacket = 0
         
         print("Input bus count: \(tapNode.numberOfInputs)")
         
-        let convertFormat = AVAudioFormat(streamDescription: &outDesc)!
+        let convertFormat = AVAudioFormat(settings: COMPRESSED_AUDIO_SETTINGS)!
+        
+//        let convertFormat = AVAudioFormat(streamDescription: &outDesc)!
         converter = AVAudioConverter(from: format, to: convertFormat)
         print("Recorder Converter \(converter.inputFormat) ----> \(converter.outputFormat)")
         

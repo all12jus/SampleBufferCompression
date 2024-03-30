@@ -432,7 +432,7 @@ class AudioTest1 {
         }
         
         captureEngine.onData = { data in
-//            self.outputEngine.handleDataRecieved(data)
+            self.outputEngine.handleDataRecieved(data)
         }
         do {
             try captureEngine.startRecording()
@@ -562,8 +562,45 @@ class OutputEngine1 {
     //    }
     
     var countOfEndOfSteam = 0
-//    func handleDataRecieved(_ data: Data) {
-//        
+    func handleDataRecieved(_ data: Data) {
+        
+        let packetCapacity = AVAudioPacketCount((data.count / 8) + 1)
+        let maximumPacketSize = 32
+        do {
+            
+            let decoder = JSONDecoder()
+            let decodedData = try decoder.decode([Data].self, from: data)
+            
+            let decodedPacketDescriptionsData = decodedData[0]
+            let decodedPacketDescriptions = try decoder.decode([PacketDescription].self, from: decodedPacketDescriptionsData)
+            
+            let decodedAudioData = decodedData[1]
+            let compressedBuffer: AVAudioCompressedBuffer = AVAudioCompressedBuffer.init(format: compressedFormat, packetCapacity: packetCapacity, maximumPacketSize: maximumPacketSize)
+            compressedBuffer.byteLength = UInt32(data.count)
+            compressedBuffer.packetCount = AVAudioPacketCount(decodedPacketDescriptions.count)
+            decodedAudioData.withUnsafeBytes {
+                compressedBuffer.data.copyMemory(from: $0.baseAddress!, byteCount: data.count)
+            }
+            
+            // Reassemble packet descriptions
+            for (index, element) in decodedPacketDescriptions.enumerated() {
+                compressedBuffer.packetDescriptions?[index] = AudioStreamPacketDescription(mStartOffset: element.mStartOffset,
+                                                                                           mVariableFramesInPacket: UInt32(element.mVariableFramesInPacket),
+                                                                                           mDataByteSize: UInt32(element.mDataByteSize))
+            }
+            
+//            self.audioPlayerNode.scheduleBuffer(compressedBuffer)
+            if let uncompressed = handleCompressedBuffer(compressedBuffer) {
+                print(uncompressed)
+                self.audioPlayerNode.scheduleBuffer(uncompressed)
+            }
+           
+        }
+        catch {
+            exit(-1)
+        }
+        
+        
 //        print("Handle Data Recieved")
 //        
 //        data.withUnsafeBytes { (bufferPointer) in
@@ -634,12 +671,16 @@ class OutputEngine1 {
 //            //            }
 //            
 //        }
-//    }
-//    
+    }
+    
 }
 
 
-
+struct PacketDescription: Codable {
+    var mStartOffset: Int64
+    var mVariableFramesInPacket: Int
+    var mDataByteSize: Int
+}
 
 
 class CaptureEngine1 {
@@ -735,6 +776,46 @@ class CaptureEngine1 {
             self.converter.convert(to: self.compressedBuffer!, error: &outError, withInputFrom: inputBlock)
             
             self.onBuffer?(self.compressedBuffer!)
+            
+            var packetDescriptions = [PacketDescription]()
+            
+            for index in 0 ..< self.compressedBuffer!.packetCount {
+                if let packetDescription = self.compressedBuffer!.packetDescriptions?[Int(index)] {
+                    packetDescriptions.append(
+                        PacketDescription(mStartOffset: packetDescription.mStartOffset,
+                                          mVariableFramesInPacket: Int(packetDescription.mVariableFramesInPacket),
+                                          mDataByteSize: Int(packetDescription.mDataByteSize)))
+                }
+            }
+            
+            let capacity = Int(self.compressedBuffer!.byteLength)
+            let compressedBufferPointer = self.compressedBuffer!.data.bindMemory(to: UInt8.self, capacity: capacity)
+            var compressedBytes: [UInt8] = [UInt8].init(repeating: 0, count: capacity)
+            compressedBufferPointer.withMemoryRebound(to: UInt8.self, capacity: capacity) { sourceBytes in
+                compressedBytes.withUnsafeMutableBufferPointer {
+                    $0.baseAddress!.initialize(from: sourceBytes, count: capacity)
+                }
+            }
+            
+            let data = Data(compressedBytes)
+            let encoder = JSONEncoder()
+            do {
+                let packetDescriptionsData = try encoder.encode(packetDescriptions)
+                let combinedData = try encoder.encode([packetDescriptionsData, data])
+                self.onData?(combinedData)
+            }
+            catch {
+                exit(-2)
+            }
+            
+            
+            
+//            let audioData = Data(bytes: self.compressedBuffer!.data, count: Int(self.compressedBuffer!.byteLength))
+//            let packetDescriptions = Array(UnsafeBufferPointer(start: self.compressedBuffer!.packetDescriptions, count: Int(self.compressedBuffer!.packetCount)))
+//            // Assuming `encodedPacketDescriptions` is the result of encoding packet descriptions
+//            let combinedData = encodedPacketDescriptions + audioData
+//
+
             
 //            let audioBuffer = self.compressedBuffer!.audioBufferList.pointee.mBuffers
 //            if let mData = audioBuffer.mData {

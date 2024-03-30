@@ -432,7 +432,7 @@ class AudioTest1 {
         }
         
         captureEngine.onData = { data in
-            self.outputEngine.handleDataRecieved(data)
+//            self.outputEngine.handleDataRecieved(data)
         }
         do {
             try captureEngine.startRecording()
@@ -473,6 +473,14 @@ class OutputEngine1 {
         let uncompressedFormat = mixerNode.inputFormat(forBus: 0)
         self.converter = AVAudioConverter(from: compressedFormat, to: uncompressedFormat)
         self.converter.reset()
+        
+        do {
+            try audioEngine.start()
+            audioPlayerNode.play()
+        }
+        catch {
+            exit(-4)
+        }
     }
     
     func handleBufferRecieved(_ cBuffer: AVAudioCompressedBuffer) {
@@ -593,6 +601,9 @@ class OutputEngine1 {
             if let uncompressed = handleCompressedBuffer(compressedBuffer) {
                 print(uncompressed)
                 self.audioPlayerNode.scheduleBuffer(uncompressed)
+            }
+            else {
+                print("no uncompressed audio to play")
             }
            
         }
@@ -734,12 +745,12 @@ class CaptureEngine1 {
         //
         let format = tapNode.outputFormat(forBus: 0)
         
-        var outDesc = AudioStreamBasicDescription()
-        outDesc.mSampleRate = format.sampleRate
-        outDesc.mChannelsPerFrame = format.channelCount
-        outDesc.mFormatID = kAudioFormatMPEG4AAC
-        outDesc.mFramesPerPacket = 1024 // AAC typically uses 1024 frames per packet
-        // Other settings may need to be adjusted for AAC encoding
+//        var outDesc = AudioStreamBasicDescription()
+//        outDesc.mSampleRate = format.sampleRate
+//        outDesc.mChannelsPerFrame = format.channelCount
+//        outDesc.mFormatID = kAudioFormatMPEG4AAC
+//        outDesc.mFramesPerPacket = 1024 // AAC typically uses 1024 frames per packet
+//        // Other settings may need to be adjusted for AAC encoding
 
         print("Input bus count: \(tapNode.numberOfInputs)")
         

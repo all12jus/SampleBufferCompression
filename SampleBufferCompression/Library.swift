@@ -5,6 +5,11 @@
 //  Created by Justin Allen on 3/28/24.
 //
 
+
+// TODO: go down this rabbit hole. https://stackoverflow.com/questions/71113131/how-to-correctly-convert-avaudiocompressedbuffer-into-data-and-back
+
+
+
 import Foundation
 import AVFoundation
 
@@ -44,8 +49,7 @@ let COMPRESSED_AUDIO_SETTINGS: [String : Any] = [
 let PLAYBACK_AUDIO_SETTINGS: [String : Any] = [
     AVFormatIDKey: kAudioFormatLinearPCM,
     AVSampleRateKey: 44100,
-    AVNumberOfChannelsKey: 2,
-    AVEncoderBitRateKey: 128000
+    AVNumberOfChannelsKey: 2
 ]
 
 class OutputEngine {
@@ -70,36 +74,92 @@ class OutputEngine {
         audioEngine.connect(audioPlayerNode, to: mixerNode, format: outputFormat)
         
         audioEngine.connect(mixerNode, to: audioEngine.mainMixerNode, format: outputFormat)
-        
-        //        uncompressedFormat = audioEngine.mainMixerNode.outputFormat(forBus: 0)
-        
         compressedFormat = AVAudioFormat(settings:COMPRESSED_AUDIO_SETTINGS)
         
-//        compressedFormat = format1
-
-        
-//        var inputFormatDescription = AudioStreamBasicDescription()
-//        inputFormatDescription.mSampleRate = 44100.0 // Sample rate of the original audio
-//        inputFormatDescription.mChannelsPerFrame = 1 // Number of channels
-//        //        inputFormatDescription.mFormatID = kAudioFormatMPEG4AAC // FLAC format
-//        inputFormatDescription.mFormatID = kAudioFormatFLAC // FLAC format
-//        inputFormatDescription.mFramesPerPacket = 1152 // Frames per packet
-//        inputFormatDescription.mBitsPerChannel = 24 // Bit depth
-//        inputFormatDescription.mBytesPerPacket = 8 // Calculated based on other parameters
-//        compressedFormat = AVAudioFormat(streamDescription: &inputFormatDescription)!
-        
-//        let format = self.audioEngine.mainMixerNode.inputFormat(forBus: 0)
-        self.converter = AVAudioConverter(from: compressedFormat, to: outputFormat)
+        let uncompressedFormat = mixerNode.inputFormat(forBus: 0)
+        self.converter = AVAudioConverter(from: compressedFormat, to: uncompressedFormat)
         self.converter.reset()
-        
-        
     }
     
+    func handleCompressedBuffer(_ cBuffer: AVAudioCompressedBuffer) -> AVAudioPCMBuffer? {
+        var outError: NSError? = nil
+        let uncompressedFormat = mixerNode.inputFormat(forBus: 0)
+        guard let uncompressedBuffer = AVAudioPCMBuffer(pcmFormat: uncompressedFormat, frameCapacity: AVAudioFrameCount(1000000)) else {
+            print("Can't create uncompressed buffer")
+            exit(-010)
+        }
+        
+        let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
+            outStatus.pointee = .haveData
+            return cBuffer
+        }
+        
+        let conversionResult = converter.convert(to: uncompressedBuffer, error: &outError) { inNumPackets, outStatus in
+            return inputBlock(inNumPackets, outStatus)
+        }
+        
+        if let error = outError {
+            print("Conversion error: \(error.localizedDescription)")
+            return nil
+        }
+        
+        if conversionResult == .endOfStream {
+            print("Conversion Result = endOfStream")
+            countOfEndOfSteam += 1
+            if countOfEndOfSteam > 10 {
+                print("Reached 10 endOfStream results in a row.")
+                exit(-6)
+            }
+        } else {
+            countOfEndOfSteam = 0
+        }
+        
+        return uncompressedBuffer
+    }
+
+    
+    
+//    func handleCompressedBuffer(_ cBuffer: AVAudioCompressedBuffer) -> AVAudioPCMBuffer {
+//        var outError: NSError? = nil
+//        let uncompressedFormat = mixerNode.inputFormat(forBus: 0)
+//        if let uncompressedBuffer = AVAudioPCMBuffer(pcmFormat: uncompressedFormat, frameCapacity: AVAudioFrameCount(1000000) ) {
+//            
+//            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
+//                // Assuming sourceBuffer is your populated AVAudioCompressedBuffer
+//                outStatus.pointee = .haveData
+//                return cBuffer
+//            }
+//            
+//            
+//            let conversionResult = converter.convert(to: uncompressedBuffer, error: &outError) { inNumPackets, outStatus in
+//                return inputBlock(inNumPackets, outStatus)
+//            }
+//            
+//            if conversionResult == .endOfStream {
+//                print(uncompressedBuffer)
+//                print("Conversion Result = endOfStream")
+//                countOfEndOfSteam += 1
+//                if countOfEndOfSteam > 10 {
+//                    print("Reached 10 endOfStream results in a row.")
+//                    exit(-6)
+//                }
+//                
+//                // Exit the loop if we've reached the end of the stream
+//            }
+//            else {
+//                countOfEndOfSteam = 0
+//            }
+//            return uncompressedBuffer
+//        }
+//        else {
+//            print("Can't create uncompressed buffer")
+//            exit(-010)
+//        }
+//    }
     
     var countOfEndOfSteam = 0
     func handleDataRecieved(_ data: Data) {
-        let uncompressedFormat = mixerNode.inputFormat(forBus: 0)
-        //        let converter = AVAudioConverter(from: inputFormat, to: uncompressedFormat)!
+        
         print("Handle Data Recieved")
         
         data.withUnsafeBytes { (bufferPointer) in
@@ -119,127 +179,55 @@ class OutputEngine {
                 print("line 232")
                 exit(-4)
             }
-
-            let sampleRate: Double = 44100
-            let channels: AVAudioChannelCount = 2
-            
-            // Calculate frame capacity for 1 second of audio in this format.
-            let frameCapacity = AVAudioFrameCount(sampleRate * Double(channels) * 1152 * 0.0001)
-            //            let frameCapacity = AVAudioFrameCount((Int.max - 1) / 8)
+            let frameCapacity = AVAudioFrameCount(exactly: 96_000)!
             print("Frame Capacity \(frameCapacity)")
-            let uncompressedBuffer = AVAudioPCMBuffer(pcmFormat: uncompressedFormat, frameCapacity: frameCapacity )!
-            print("converter formats \(converter.inputFormat) -> \(converter.outputFormat)")
+//            let uncompressedBuffer = AVAudioPCMBuffer(pcmFormat: uncompressedFormat, frameCapacity: frameCapacity )!
+//            print("converter formats \(converter.inputFormat) -> \(converter.outputFormat)")
             
-            self.converter = AVAudioConverter(from: compressedBufferLocal.format, to: uncompressedBuffer.format)!
+            let result = handleCompressedBuffer(compressedBufferLocal)
             
-            print(compressedBufferLocal)
-            print(uncompressedBuffer.frameCapacity)
+            
+//            print(compressedBufferLocal)
+//            print(uncompressedBuffer.frameCapacity)
             // Input block is called when the converter needs input
-            uncompressedBuffer.frameLength = uncompressedBuffer.frameCapacity
-//            let inputBlock_: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
-//                //                return nil
-//                
-//                print("in \(inNumPackets) \(outStatus.pointee.rawValue)")
-//                //                outStatus.pointee = .haveData
-//                outStatus.pointee = .haveData
-//                print("called input block")
-//                
-//                print(compressedBufferLocal)
-//                return compressedBufferLocal // Provide the compressed buffer
-//            }
+//            uncompressedBuffer.frameLength = uncompressedBuffer.frameCapacity
+
 //            
             // Decompression loop
-            var outError: NSError? = nil
             
-            
-            let format = self.mixerNode.inputFormat(forBus: 0)
-            self.converter = AVAudioConverter(from: compressedFormat, to: format)
-            
-            
-            
-            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
-                // Assuming sourceBuffer is your populated AVAudioCompressedBuffer
-                if (uncompressedBuffer.frameLength != 0){
-                    outStatus.pointee = .haveData
-                    print("164: \(compressedBufferLocal.byteLength)")
-                    return compressedBufferLocal
-                } else {
-                    outStatus.pointee = .noDataNow
-                    return nil
-                }
-            }
-
-            var error: NSError?
-            let conversionResult = converter.convert(to: uncompressedBuffer, error: &error) { inNumPackets, outStatus in
-                return inputBlock(inNumPackets, outStatus)
-            }
-            
-            
-            
-//            let inputBlock: AVAudioConverterInputBlock = { inNumPackets, outStatus -> AVAudioBuffer? in
-//                // Assuming sourceBuffer is your populated AVAudioCompressedBuffer
-//                if !sourceBufferIsEmpty {
-//                    outStatus.pointee = .haveData
-//                    return sourceBuffer
-//                } else {
-//                    outStatus.pointee = .noDataNow
-//                    return nil
-//                }
-//            }
 //            
-//            var error: NSError?
-//            let result = converter.convert(to: destinationBuffer, error: &error) { inNumPackets, outStatus in
-//                return inputBlock(inNumPackets, outStatus)
-//            }
+//
+//            print(conversionResult)
+//            print(conversionResult.rawValue)
+//            print("error: \(outError)")
+//            print(uncompressedBuffer)
 //            
-            
-            
-            
-            
-            
-//            let conversionResult = converter.convert(to: uncompressedBuffer, error: &outError, withInputFrom: inputBlock)
-            print(conversionResult)
-            print(conversionResult.rawValue)
-            print("error: \(outError)")
-            
-            if conversionResult == .endOfStream {
-                print("Conversion Result = endOfStream")
-                countOfEndOfSteam += 1
-                if countOfEndOfSteam > 10 {
-                    print("Reached 10 endOfStream results in a row.")
-                    exit(-6)
-                }
-                
-                // Exit the loop if we've reached the end of the stream
-            }
-            else {
-                countOfEndOfSteam = 0
-            }
+           
             
             // INSTRUCTIONS: This is where it gets to 0 data to decompress.
             
-            // Check for errors
-            if let error = outError {
-                print("Error during conversion: \(error)")
-                exit(-1)
-            } else {
-                print(uncompressedBuffer)
-                
-                // Use the uncompressed audio
-                let frameLength = uncompressedBuffer.frameLength
-                if frameLength > 0 {
-                    // Here you can use uncompressedBuffer, which now contains the uncompressed audio data
-                    // For example, you might play it or save it to a file
-                    self.audioPlayerNode.scheduleBuffer(uncompressedBuffer, completionHandler: {
-                        
-                    })
-                    print("Playback rocks")
-                    
-                } else {
-                    print("No data was decompressed.")
-                    //                    exit(-5)
-                }
-            }
+//            // Check for errors
+//            if let error = outError {
+//                print("Error during conversion: \(error)")
+//                exit(-1)
+//            } else {
+//                print(uncompressedBuffer)
+//                
+//                // Use the uncompressed audio
+//                let frameLength = uncompressedBuffer.frameLength
+//                if frameLength > 0 {
+//                    // Here you can use uncompressedBuffer, which now contains the uncompressed audio data
+//                    // For example, you might play it or save it to a file
+//                    self.audioPlayerNode.scheduleBuffer(uncompressedBuffer, completionHandler: {
+//                        
+//                    })
+//                    print("Playback rocks")
+//                    
+//                } else {
+//                    print("No data was decompressed.")
+//                    //                    exit(-5)
+//                }
+//            }
             
         }
     }

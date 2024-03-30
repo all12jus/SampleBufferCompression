@@ -28,8 +28,12 @@ class AudioTest {
         captureEngine.onData = { data in
             self.outputEngine.handleDataRecieved(data)
         }
+        
+        
         do {
             try captureEngine.startRecording()
+            
+            captureEngine.playAudioFile(named: "", withExtension: "")
         }
         catch {
             print(error)
@@ -287,6 +291,31 @@ class CaptureEngine {
     
     
     
+//    var playerNode: AVAudioPlayerNode?
+//    var audioFile: AVAudioFile?
+    func playAudioFile(named fileName: String, withExtension fileExtension: String) {
+        guard let fileURL = Bundle.main.url(forResource: fileName, withExtension: fileExtension) else {
+            print("Audio file not found.")
+            return
+        }
+        
+        do {
+            let audioFile = try AVAudioFile(forReading: fileURL)
+            let playerNode = AVAudioPlayerNode()
+            engine.attach(playerNode)
+            
+            let format = audioFile.processingFormat
+            engine.connect(playerNode, to: engine.mainMixerNode, format: format)
+            
+            try engine.start()
+            playerNode.scheduleFile(audioFile, at: nil)
+            playerNode.play()
+        } catch {
+            print("Error playing audio file: \(error.localizedDescription)")
+        }
+    }
+    
+    
     func startRecording() throws {
         let tapNode: AVAudioNode = mixerNode
         //
@@ -427,15 +456,17 @@ class AudioTest1 {
         
         captureEngine.onBuffer = { buffer in
 //            let pcm = handleCompressedBuffer(buffer)
-//            self.outputEngine.handleBufferRecieved(buffer)
+            self.outputEngine.handleBufferRecieved(buffer)
             
         }
         
         captureEngine.onData = { data in
-            self.outputEngine.handleDataRecieved(data)
+//            self.outputEngine.handleDataRecieved(data)
         }
         do {
             try captureEngine.startRecording()
+            
+            captureEngine.playAudioFile(named: "1-01 Great Balls Of Fire", withExtension: "m4a")
         }
         catch {
             print(error)
@@ -848,6 +879,27 @@ class CaptureEngine1 {
         state = .recording
     }
     
+    func playAudioFile(named fileName: String, withExtension fileExtension: String) {
+        guard let fileURL = Bundle.main.url(forResource: fileName, withExtension: fileExtension) else {
+            print("Audio file not found.")
+            return
+        }
+        
+        do {
+            let audioFile = try AVAudioFile(forReading: fileURL)
+            let playerNode = AVAudioPlayerNode()
+            engine.attach(playerNode)
+            
+            let format = audioFile.processingFormat
+            engine.connect(playerNode, to: mixerNode, format: format)
+            
+            try engine.start()
+            playerNode.scheduleFile(audioFile, at: nil)
+            playerNode.play()
+        } catch {
+            print("Error playing audio file: \(error.localizedDescription)")
+        }
+    }
     
     func resumeRecording() throws {
         try engine.start()

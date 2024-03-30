@@ -7,7 +7,7 @@
 
 
 // TODO: go down this rabbit hole. https://stackoverflow.com/questions/71113131/how-to-correctly-convert-avaudiocompressedbuffer-into-data-and-back
-
+// May have to go down this line: https://www.mikeash.com/pyblog/friday-qa-2017-07-28-a-binary-coder-for-swift.html
 
 
 import Foundation

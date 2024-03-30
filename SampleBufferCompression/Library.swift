@@ -427,12 +427,12 @@ class AudioTest1 {
         
         captureEngine.onBuffer = { buffer in
 //            let pcm = handleCompressedBuffer(buffer)
-            self.outputEngine.handleBufferRecieved(buffer)
+//            self.outputEngine.handleBufferRecieved(buffer)
             
         }
         
         captureEngine.onData = { data in
-//            self.outputEngine.handleDataRecieved(data)
+            self.outputEngine.handleDataRecieved(data)
         }
         do {
             try captureEngine.startRecording()
@@ -596,6 +596,8 @@ class OutputEngine1 {
                                                                                            mVariableFramesInPacket: UInt32(element.mVariableFramesInPacket),
                                                                                            mDataByteSize: UInt32(element.mDataByteSize))
             }
+            
+            print(compressedBuffer.packetDescriptions)
             
 //            self.audioPlayerNode.scheduleBuffer(compressedBuffer)
             if let uncompressed = handleCompressedBuffer(compressedBuffer) {

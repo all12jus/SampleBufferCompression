@@ -13,6 +13,7 @@
 		D0753D582BB5A17600D8BB29 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0753D572BB5A17600D8BB29 /* Preview Assets.xcassets */; };
 		D0753D602BB5A1DF00D8BB29 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0753D5F2BB5A1DF00D8BB29 /* Library.swift */; };
 		D07959962BB87922001359CF /* 1-01 Great Balls Of Fire.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D07959952BB87922001359CF /* 1-01 Great Balls Of Fire.m4a */; };
+		D07959982BB87EE2001359CF /* Lb2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07959972BB87EE2001359CF /* Lb2.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		D0753D592BB5A17600D8BB29 /* SampleBufferCompression.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SampleBufferCompression.entitlements; sourceTree = "<group>"; };
 		D0753D5F2BB5A1DF00D8BB29 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
 		D07959952BB87922001359CF /* 1-01 Great Balls Of Fire.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = "1-01 Great Balls Of Fire.m4a"; sourceTree = "<group>"; };
+		D07959972BB87EE2001359CF /* Lb2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lb2.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +65,7 @@
 				D0753D592BB5A17600D8BB29 /* SampleBufferCompression.entitlements */,
 				D07959952BB87922001359CF /* 1-01 Great Balls Of Fire.m4a */,
 				D0753D562BB5A17600D8BB29 /* Preview Content */,
+				D07959972BB87EE2001359CF /* Lb2.swift */,
 			);
 			path = SampleBufferCompression;
 			sourceTree = "<group>";
@@ -146,6 +149,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D07959982BB87EE2001359CF /* Lb2.swift in Sources */,
 				D0753D532BB5A17400D8BB29 /* ContentView.swift in Sources */,
 				D0753D512BB5A17400D8BB29 /* SampleBufferCompressionApp.swift in Sources */,
 				D0753D602BB5A1DF00D8BB29 /* Library.swift in Sources */,

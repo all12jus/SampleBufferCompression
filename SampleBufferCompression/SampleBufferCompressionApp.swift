@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct SampleBufferCompressionApp: App {
-    var audioTester: AudioTest1 = AudioTest1()
+    var audioTester: AudioTest = AudioTest()
     var body: some Scene {
         WindowGroup {
             ContentView()
